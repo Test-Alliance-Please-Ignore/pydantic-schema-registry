@@ -6,6 +6,8 @@ authors = ["ozzeh <ozzeh@pleaseignore.com>"]
 
 [tool.poetry.dependencies]
 python = "^3.8"
+pydantic = "^1.7.2"
+boto3 = "^1.16.25"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
