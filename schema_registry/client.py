@@ -74,7 +74,9 @@ class Schema:
 
 
 class SchemaRegistry:
-    standard_resources = ["pydantic-schema-registry", ]
+    standard_resources = [
+        "pydantic-schema-registry",
+    ]
 
     def __init__(
         self, registry_name: Optional[str] = None, *, prefix: str = None, **boto_opts
@@ -142,7 +144,9 @@ class SchemaRegistry:
             include=set(["schema_arn", "schema_name", "schema_version"])
         )
 
-    def send_event(self, event_bus, sender, model: BaseModel, extra_resources: List[str] = None):
+    def send_event(
+        self, event_bus, sender, model: BaseModel, extra_resources: List[str] = None
+    ):
         cls = model.__class__
 
         if cls not in self._model_schemas:
@@ -155,10 +159,21 @@ class SchemaRegistry:
             resources += extra_resources
 
         event_data = {
-            "schema": schema_info.dict(include=set(["schema_arn", "schema_name", "schema_version"])),
-            "event": model.dict()
+            "schema": schema_info.dict(
+                include=set(["schema_arn", "schema_name", "schema_version"])
+            ),
+            "event": model.dict(),
         }
-    
-        entry = dict(Source=sender, Detail=json.dumps(event_data), Resources=resources, DetailType=cls.__name__, EventBusName=event_bus)
-        response = self.session.client("events").put_events(Entries=[entry,])
 
+        entry = dict(
+            Source=sender,
+            Detail=json.dumps(event_data),
+            Resources=resources,
+            DetailType=cls.__name__,
+            EventBusName=event_bus,
+        )
+        response = self.session.client("events").put_events(
+            Entries=[
+                entry,
+            ]
+        )
