@@ -49,7 +49,9 @@ class Schema:
                     version.schema_version
                 ] = self._get_schema_version_content(version)
 
-    def _get_schema_version_content(self, schema_version: _SchemaVersionModel) -> _SchemaContentModel:
+    def _get_schema_version_content(
+        self, schema_version: _SchemaVersionModel
+    ) -> _SchemaContentModel:
         describe_opts = dict(
             RegistryName=self.registry_name,
             SchemaName=self.schema_name,
@@ -127,9 +129,11 @@ class SchemaRegistry:
                 schema_info = _SchemaCreateUpdateModel.parse_obj(response)
                 self._model_schemas[model] = schema_info
                 return schema_info
-        
+
     def schema_for_model(self, model: Type[BaseModel]) -> dict:
         if model not in self._model_schemas:
             raise ModelNotRegisteredError(model)
-        
-        return self._model_schemas[model].dict(include=set(["schema_arn", "schema_name", "schema_version"]))
+
+        return self._model_schemas[model].dict(
+            include=set(["schema_arn", "schema_name", "schema_version"])
+        )
