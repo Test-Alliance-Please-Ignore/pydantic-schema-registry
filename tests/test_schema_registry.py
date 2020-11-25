@@ -66,3 +66,9 @@ def test_registered_model(test_model, named_registry):
 
 def test_complex_mode(complex_model, named_registry):
     named_registry.register_model("com.pleaseignore.tvm.test", complex_model)
+
+
+def test_send_simple_message(test_model, named_registry):
+    instance = test_model(name="Test", description="Hello!")
+    log.debug(instance)
+    named_registry.send_event("auth-dev", "com.pleaseignore.tvm.test", instance)
