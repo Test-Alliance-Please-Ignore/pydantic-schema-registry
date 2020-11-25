@@ -1,0 +1,78 @@
+from pydantic import BaseModel, create_model, Field
+
+from devtools import debug
+
+from typing import Optional, List
+
+
+class SchemaReflector:
+    def __init__(self, schema):
+        self.schema = schema
+        self.fields = {}
+        self.references = {}
+
+    def _resolve_reference(self, ref_value, property_info):
+        accessors = ref_value.rsplit("/", 1)
+        return self.references[accessors[1]]
+
+    def _resolve_array(self, name, property_info, required) -> tuple:
+        debug(name, property_info, required)
+        items = property_info.get("items")
+        item_type, item_value = next(iter(items.items()))
+
+        if item_type == "$ref":
+            referenced_type = self._resolve_reference(item_value, property_info)
+            return (referenced_type, ... if required else None)
+
+    def _resolve_property(self, name, property_info, required=True) -> tuple:
+        type_ = property_info.get("type")
+
+        if type_ == "string":
+            return (str, ... if required else None)
+
+        elif type_ == "boolean":
+            return (bool, ... if required else None)
+
+        elif type_ in ("number", "integer"):
+            return (int, ... if required else None)
+
+        elif type_ == "array":
+            return self._resolve_array(name, property_info, required)
+
+        raise NotImplementedError(f"Not able to reflect the type: {type_}")
+
+    def _resolve_properties(self):
+        if "properties" not in self.schema:
+            raise TypeError("No properties are defined for this schema")
+
+        required_fields = self.schema.get("required")
+
+        for name, info in self.schema.get("properties").items():
+            self.fields[name] = self._resolve_property(
+                name, info, required=name in required_fields
+            )
+
+    def _resolve_definition(self, d_name, d_info):
+        debug(d_name, d_info)
+        if d_info["type"] != "object":
+            raise TypeError("Cannot reflect a non-object")
+
+        model = SchemaReflector(d_info).create_model_for_jsonschema()
+        self.references[d_name] = model
+
+    def create_model_for_jsonschema(self):
+        if "title" not in self.schema:
+            raise TypeError("Schema needs a title field")
+
+        if "type" not in self.schema:
+            raise TypeError("Schema needs a type field")
+
+        self.root_model_name = self.schema.get("title")
+
+        if "definitions" in self.schema:
+            for name, d_info in self.schema.get("definitions").items():
+                self._resolve_definition(name, d_info)
+
+        self._resolve_properties()
+
+        return create_model(self.root_model_name, **self.fields)
