@@ -1,28 +1,35 @@
-from pydantic import BaseModel, create_model, Field
-
-from devtools import debug
-
 from typing import Optional, List
+from pydantic import BaseModel, create_model, Field
+from devtools import debug
+from jsonpointer import resolve_pointer
 
+
+class _ReflectedModel(BaseModel):
+    class Config:
+        alias_generator = lambda x: "fields_" if x == "fields" else x
 
 class SchemaReflector:
     def __init__(self, schema):
         self.schema = schema
         self.fields = {}
         self.references = {}
+        self.definitions = {}
 
-    def _resolve_reference(self, ref_value, property_info):
-        accessors = ref_value.rsplit("/", 1)
-        return self.references[accessors[1]]
+    def _resolve_reference(self, ref_value):
+        if ref_value.startswith("#"):
+            return resolve_pointer(self.__dict__, ref_value.split("#")[1])
+        
+        raise TypeError("Cannot resolve a reference that's not a json pointer. (Reference value {})".format(ref_value))
 
     def _resolve_array(self, name, property_info, required) -> tuple:
-        debug(name, property_info, required)
         items = property_info.get("items")
         item_type, item_value = next(iter(items.items()))
 
         if item_type == "$ref":
-            referenced_type = self._resolve_reference(item_value, property_info)
+            referenced_type = self._resolve_reference(item_value)
             return (referenced_type, ... if required else None)
+
+        raise NotImplementedError("Cannot reflect type: {}".format(item_type))
 
     def _resolve_property(self, name, property_info, required=True) -> tuple:
         type_ = property_info.get("type")
@@ -59,6 +66,7 @@ class SchemaReflector:
 
         model = SchemaReflector(d_info).create_model_for_jsonschema()
         self.references[d_name] = model
+        self.definitions[d_name] = model
 
     def create_model_for_jsonschema(self):
         if "title" not in self.schema:
@@ -75,4 +83,4 @@ class SchemaReflector:
 
         self._resolve_properties()
 
-        return create_model(self.root_model_name, **self.fields)
+        return create_model(self.root_model_name, __base__=_ReflectedModel, **self.fields)

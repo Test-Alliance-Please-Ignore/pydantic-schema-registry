@@ -37,6 +37,15 @@ def test_model():
 
 
 @pytest.fixture(scope="module")
+def nullable_model():
+    class NullableModel(BaseModel):
+        name: str
+        description: Optional[str] = None
+
+    yield NullableModel
+
+
+@pytest.fixture(scope="module")
 def complex_model():
     class Group(BaseModel):
         id: int
@@ -64,9 +73,11 @@ def test_registered_model(test_model, named_registry):
     model_info = named_registry.schema_for_model(test_model)
 
 
-def test_complex_mode(complex_model, named_registry):
+def test_complex_model(complex_model, named_registry):
     named_registry.register_model("com.pleaseignore.tvm.test", complex_model)
 
+def test_nullable_model(nullable_model, named_registry):
+    named_registry.register_model("com.pleaseignore.tvm.test", nullable_model)
 
 def test_send_simple_message(test_model, named_registry):
     instance = test_model(name="Test", description="Hello!")
