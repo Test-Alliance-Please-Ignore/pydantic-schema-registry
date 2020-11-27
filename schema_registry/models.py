@@ -60,11 +60,11 @@ class _SchemaPageModel(_AWSResponseModel):
 
 
 class Event(BaseModel):
-    event_version: str
+    event_version: str = Field(..., alias="version")
     id: str
 
     detail_type: str = Field(..., alias="detail-type")
-    detail: Json
+    detail: dict
     source: str
     
     account: str
@@ -82,5 +82,5 @@ class Event(BaseModel):
         return self.detail_type.split(":")[1]
 
     @property
-    def model_name(self) -> str:
+    def schema_name(self) -> str:
         return self.detail_type.split("/")[1].split(":")[0]

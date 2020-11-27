@@ -3,6 +3,21 @@ from pydantic import BaseModel, create_model, Field
 from devtools import debug
 from jsonpointer import resolve_pointer
 
+from schema_registry.models import Event
+from schema_registry.client import SchemaRegistry
+
+
+def reflect_event(event_dict: dict) -> BaseModel:
+    event: Event = Event.parse_obj(event_dict)
+
+    registry: SchemaRegistry = SchemaRegistry(event.schema_registry)
+    schema = registry.get_schema(event.schema_name)
+    version = schema.get(version=event.schema_version)
+    reflector = SchemaReflector(version.content_dict)
+    model = reflector.create_model_for_jsonschema()
+    setattr(model, "__detail_type__", event_dict.get("detail-type"))
+    return model.parse_obj(event_dict.get("detail"))
+
 
 class _ReflectedModel(BaseModel):
     class Config:
@@ -10,11 +25,12 @@ class _ReflectedModel(BaseModel):
 
 
 class SchemaReflector:
-    def __init__(self, schema):
+    def __init__(self, schema, registry=None):
         self.schema = schema
         self.fields = {}
         self.references = {}
         self.definitions = {}
+        self.registry = registry
 
     def _resolve_reference(self, ref_value):
         if ref_value.startswith("#"):

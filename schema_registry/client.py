@@ -11,7 +11,8 @@ import boto3
 
 from pydantic import BaseModel
 
-from .models import (
+from schema_registry.models import (
+    Event,
     _SchemaPageModel,
     _SchemaVersionsPageModel,
     _SchemaVersionModel,
@@ -19,9 +20,7 @@ from .models import (
     _SchemaCreateUpdateModel,
 )
 
-from .reflection import SchemaReflector
-
-from .errors import SchemaRegistryError, ModelNotRegisteredError
+from schema_registry.errors import SchemaRegistryError, ModelNotRegisteredError
 
 logger = logging.getLogger("schema_registry")
 
@@ -71,9 +70,6 @@ class Schema:
         else:
             return self._versions[version]
 
-    def reflect(self, version=None) -> SchemaReflector:
-        schema: _SchemaContentModel = self.get(version)
-        return SchemaReflector(schema.content_dict)
 
     def __repr__(self):
         return f"Schema<{self.schema_name}, versions: {len(self._versions)}, default version: {self.default_version}>"
@@ -107,6 +103,10 @@ class SchemaRegistry:
                 self._schemas[schema.schema_name] = Schema(
                     self.schema_client, self.registry_name, schema.schema_name
                 )
+
+    def get_schema(self, name) -> Schema:
+        return self._schemas.get(name)
+
 
     def register_model(
         self, namespace, model: Type[BaseModel]
@@ -146,10 +146,6 @@ class SchemaRegistry:
         return self._model_schemas[model].dict(
             include=set(["schema_arn", "schema_name", "schema_version"])
         )
-
-
-    def reflect_event(self) -> Dict[str, SchemaReflector]:
-        pass
         
 
     def send_event(
