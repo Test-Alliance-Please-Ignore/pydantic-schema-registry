@@ -1,7 +1,7 @@
 from typing import List, Optional, Dict, Literal
 from datetime import datetime
 
-from pydantic import create_model, BaseModel, Field, PrivateAttr
+from pydantic import create_model, BaseModel, Field, PrivateAttr, Json
 
 from .utils import camel_generator
 
@@ -57,3 +57,30 @@ class _SchemaVersionsPageModel(_AWSResponseModel):
 
 class _SchemaPageModel(_AWSResponseModel):
     schemas: List[_SchemaModel]
+
+
+class Event(BaseModel):
+    event_version: str
+    id: str
+
+    detail_type: str = Field(..., alias="detail-type")
+    detail: Json
+    source: str
+    
+    account: str
+    region: str
+
+    time: datetime
+    resources: List[str]
+
+    @property
+    def schema_registry(self) -> str:
+        return self.detail_type.split("/", 1)[0]
+
+    @property
+    def schema_version(self) -> str:
+        return self.detail_type.split(":")[1]
+
+    @property
+    def model_name(self) -> str:
+        return self.detail_type.split("/")[1].split(":")[0]

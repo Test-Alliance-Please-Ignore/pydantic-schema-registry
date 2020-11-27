@@ -147,6 +147,11 @@ class SchemaRegistry:
             include=set(["schema_arn", "schema_name", "schema_version"])
         )
 
+
+    def reflect_event(self) -> Dict[str, SchemaReflector]:
+        pass
+        
+
     def send_event(
         self, event_bus, sender, model: BaseModel, extra_resources: List[str] = None
     ):
