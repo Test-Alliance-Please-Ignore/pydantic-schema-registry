@@ -32,28 +32,31 @@ class SchemaReflector:
 
         if item_type == "$ref":
             referenced_type = self._resolve_reference(item_value)
-            return (referenced_type if required else Optional[referenced_type], ... if required else None)
+            return (referenced_type, ... if required else None)
 
         raise NotImplementedError("Cannot reflect type: {}".format(item_type))
 
     def _resolve_property(self, name, property_info, required=True) -> tuple:
-        if "type" in property_info:        
+        if "type" in property_info:
             type_ = property_info.get("type")
 
             if type_ == "string":
-                return (str if required else Optional[bool], ... if required else None)
+                return (str, ... if required else None)
 
             elif type_ == "boolean":
-                return (bool if required else Optional[bool], ... if required else None)
+                return (bool, ... if required else None)
 
             elif type_ in ("number", "integer"):
-                return (int if required else Optional[int], ... if required else None)
+                return (int, ... if required else None)
 
             elif type_ == "array":
                 return self._resolve_array(property_info, required)
         else:
             if "$ref" in property_info:
-                return (self._resolve_reference(property_info["$ref"]), ... if required else None)
+                return (
+                    self._resolve_reference(property_info["$ref"]),
+                    ... if required else None,
+                )
 
         raise NotImplementedError(f"Not able to reflect the type: {property_info}")
 

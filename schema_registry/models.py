@@ -28,6 +28,7 @@ class _SchemaContentModel(_SchemaCreateUpdateModel):
     content: str
     _content: dict = PrivateAttr({})
 
+    @property
     def content_dict(self):
         if not self._content:
             self._content = json.loads(self.content)

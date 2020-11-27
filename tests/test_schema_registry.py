@@ -52,8 +52,6 @@ def complex_model():
         name: str
 
     class ComplexModel(BaseModel):
-        """Hi mom"""
-
         name: str
         description: Optional[str]
         groups: List[Group]
@@ -68,7 +66,6 @@ def complex_model_with_references():
         name: str
 
     class ComplexReferencedModel(BaseModel):
-        """Hi mom"""
 
         name: str
         description: Optional[str]
@@ -82,7 +79,7 @@ def test_load_named_schemas(test_model, named_registry):
 
 
 def test_schema_registration(test_model, named_registry):
-    schema_info = named_registry.register_model("com.pleaseignore.tvm.test", test_model)
+    schema_info = named_registry.register_model("schema_registry.test", test_model)
 
 
 def test_registered_model(test_model, named_registry):
@@ -90,20 +87,18 @@ def test_registered_model(test_model, named_registry):
 
 
 def test_complex_model(complex_model, named_registry):
-    named_registry.register_model("com.pleaseignore.tvm.test", complex_model)
+    named_registry.register_model("schema_registry.test", complex_model)
 
 
 def test_nullable_model(nullable_model, named_registry):
-    named_registry.register_model("com.pleaseignore.tvm.test", nullable_model)
+    named_registry.register_model("schema_registry.test", nullable_model)
 
 
 def test_complex_model_with_references(complex_model_with_references, named_registry):
-    named_registry.register_model(
-        "com.pleaseignore.tvm.test", complex_model_with_references
-    )
+    named_registry.register_model("schema_registry.test", complex_model_with_references)
 
 
 def test_send_simple_message(test_model, named_registry):
     instance = test_model(name="Test", description="Hello!")
     log.debug(instance)
-    named_registry.send_event("auth-dev", "com.pleaseignore.tvm.test", instance)
+    named_registry.send_event("auth-dev", "schema_registry.test", instance)

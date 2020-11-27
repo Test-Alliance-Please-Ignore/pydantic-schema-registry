@@ -89,7 +89,16 @@ def complex_referenced_model():
                     "name": {"title": "Name", "type": "string"},
                 },
                 "required": ["id", "name"],
-            }
+            },
+            "ReferencedGroup2": {
+                "title": "ReferencedGroup2",
+                "type": "object",
+                "properties": {
+                    "id": {"title": "Id", "type": "integer"},
+                    "name": {"title": "Name", "type": "string"},
+                },
+                "required": ["id", "name"],
+            },
         },
     }
     yield item
@@ -101,7 +110,7 @@ def reflected_simple_model(simple_model, named_registry):
 
     model = SchemaReflector(simple_model).create_model_for_jsonschema()
     debug(model.__fields__)
-    named_registry.register_model("com.pleaseignore.tvm.test", model)
+    named_registry.register_model("com.pleaseignore.tvm.test.reflection", model)
     yield model
 
 
@@ -111,7 +120,7 @@ def reflected_complex_model(complex_model, named_registry):
 
     model = SchemaReflector(complex_model).create_model_for_jsonschema()
     debug(model.__fields__)
-    named_registry.register_model("com.pleaseignore.tvm.test", model)
+    named_registry.register_model("com.pleaseignore.tvm.test.reflection", model)
     yield model
 
 
@@ -121,7 +130,7 @@ def reflected_complex_referenced_model(complex_referenced_model, named_registry)
 
     model = SchemaReflector(complex_referenced_model).create_model_for_jsonschema()
     debug(model.__fields__)
-    named_registry.register_model("com.pleaseignore.tvm.test", model)
+    named_registry.register_model("com.pleaseignore.tvm.test.reflection", model)
     yield model
 
 
@@ -132,9 +141,9 @@ def test_simple_reflection(reflected_simple_model):
 def test_complex_reflection(reflected_complex_model):
     pass
 
+
 def test_complex_referenced_model_reflection(reflected_complex_referenced_model):
     pass
-
 
 
 def test_simple_reflection_registration(reflected_simple_model, named_registry):

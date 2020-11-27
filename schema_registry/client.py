@@ -19,6 +19,8 @@ from .models import (
     _SchemaCreateUpdateModel,
 )
 
+from .reflection import SchemaReflector
+
 from .errors import SchemaRegistryError, ModelNotRegisteredError
 
 logger = logging.getLogger("schema_registry")
@@ -63,11 +65,15 @@ class Schema:
         content: _SchemaContentModel = _SchemaContentModel.parse_obj(response)
         return content
 
-    def get(self, version=None):
+    def get(self, version=None) -> _SchemaContentModel:
         if not version:
             return self._versions[self.default_version]
         else:
             return self._versions[version]
+
+    def reflect(self, version=None) -> SchemaReflector:
+        schema: _SchemaContentModel = self.get(version)
+        return SchemaReflector(schema.content_dict)
 
     def __repr__(self):
         return f"Schema<{self.schema_name}, versions: {len(self._versions)}, default version: {self.default_version}>"
@@ -103,9 +109,9 @@ class SchemaRegistry:
                 )
 
     def register_model(
-        self, sender: str, model: Type[BaseModel]
+        self, namespace, model: Type[BaseModel]
     ) -> _SchemaCreateUpdateModel:
-        schema_name = "{}@{}".format(sender, model.__name__)
+        schema_name = "{}.{}".format(namespace, model.__name__)
 
         opts = dict(
             Content=model.schema_json(),
@@ -113,9 +119,6 @@ class SchemaRegistry:
             SchemaName=schema_name,
             Type="JSONSchemaDraft4",
         )
-        description = model.schema().get("description")
-        if description:
-            opts["Description"] = description
 
         if schema_name not in self._schemas:
             response = self.schema_client.create_schema(**opts)
@@ -150,7 +153,9 @@ class SchemaRegistry:
         cls = model.__class__
 
         if cls not in self._model_schemas:
-            self.register_model(sender, cls)
+            raise ValueError(
+                f"Model {model.__class__.__name__} must be registered before it can be sent"
+            )
 
         schema_info: _SchemaCreateUpdateModel = self._model_schemas[cls]
 
@@ -165,11 +170,16 @@ class SchemaRegistry:
             "event": model.dict(),
         }
 
+        detail_type_formatted = "{}:{}".format(
+            event_data["schema"]["schema_arn"].split("/", 1)[1],
+            event_data["schema"]["schema_version"],
+        )
+
         entry = dict(
             Source=sender,
-            Detail=json.dumps(event_data),
+            Detail=json.dumps(model.dict()),
             Resources=resources,
-            DetailType=cls.__name__,
+            DetailType=detail_type_formatted,
             EventBusName=event_bus,
         )
         response = self.session.client("events").put_events(
