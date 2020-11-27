@@ -1,5 +1,3 @@
-
-
 PRIMITIVE_TYPES = {
     "array": list,
     "boolean": bool,
@@ -7,5 +5,5 @@ PRIMITIVE_TYPES = {
     "number": int,
     "null": None,
     "object": type,
-    "string": str
+    "string": str,
 }

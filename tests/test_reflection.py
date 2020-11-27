@@ -69,6 +69,33 @@ def complex_model():
 
 
 @pytest.fixture(scope="module")
+def complex_referenced_model():
+    item = {
+        "title": "ComplexReferencedModel",
+        "description": "Hi mom",
+        "type": "object",
+        "properties": {
+            "name": {"title": "Name", "type": "string"},
+            "description": {"title": "Description", "type": "string"},
+            "group": {"$ref": "#/definitions/ReferencedGroup"},
+        },
+        "required": ["name", "group"],
+        "definitions": {
+            "ReferencedGroup": {
+                "title": "ReferencedGroup",
+                "type": "object",
+                "properties": {
+                    "id": {"title": "Id", "type": "integer"},
+                    "name": {"title": "Name", "type": "string"},
+                },
+                "required": ["id", "name"],
+            }
+        },
+    }
+    yield item
+
+
+@pytest.fixture(scope="module")
 def reflected_simple_model(simple_model, named_registry):
     from schema_registry.reflection import SchemaReflector
 
@@ -88,12 +115,26 @@ def reflected_complex_model(complex_model, named_registry):
     yield model
 
 
+@pytest.fixture(scope="module")
+def reflected_complex_referenced_model(complex_referenced_model, named_registry):
+    from schema_registry.reflection import SchemaReflector
+
+    model = SchemaReflector(complex_referenced_model).create_model_for_jsonschema()
+    debug(model.__fields__)
+    named_registry.register_model("com.pleaseignore.tvm.test", model)
+    yield model
+
+
 def test_simple_reflection(reflected_simple_model):
     pass
 
 
 def test_complex_reflection(reflected_complex_model):
     pass
+
+def test_complex_referenced_model_reflection(reflected_complex_referenced_model):
+    pass
+
 
 
 def test_simple_reflection_registration(reflected_simple_model, named_registry):

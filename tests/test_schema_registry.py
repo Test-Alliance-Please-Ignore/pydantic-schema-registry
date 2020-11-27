@@ -61,6 +61,22 @@ def complex_model():
     yield ComplexModel
 
 
+@pytest.fixture(scope="module")
+def complex_model_with_references():
+    class ReferencedGroup(BaseModel):
+        id: int
+        name: str
+
+    class ComplexReferencedModel(BaseModel):
+        """Hi mom"""
+
+        name: str
+        description: Optional[str]
+        group: ReferencedGroup
+
+    yield ComplexReferencedModel
+
+
 def test_load_named_schemas(test_model, named_registry):
     pass
 
@@ -76,8 +92,16 @@ def test_registered_model(test_model, named_registry):
 def test_complex_model(complex_model, named_registry):
     named_registry.register_model("com.pleaseignore.tvm.test", complex_model)
 
+
 def test_nullable_model(nullable_model, named_registry):
     named_registry.register_model("com.pleaseignore.tvm.test", nullable_model)
+
+
+def test_complex_model_with_references(complex_model_with_references, named_registry):
+    named_registry.register_model(
+        "com.pleaseignore.tvm.test", complex_model_with_references
+    )
+
 
 def test_send_simple_message(test_model, named_registry):
     instance = test_model(name="Test", description="Hello!")
