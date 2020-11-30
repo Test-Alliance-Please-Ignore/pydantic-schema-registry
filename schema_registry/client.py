@@ -105,7 +105,7 @@ class SchemaRegistry:
                 )
 
     def get_schema(self, name) -> Schema:
-        return self._schemas.get(name)
+        return self._schemas[name]
 
 
     def register_model(

@@ -1,5 +1,5 @@
 from typing import Optional, List
-from pydantic import BaseModel, create_model, Field
+from pydantic import BaseModel, create_model, Field, PrivateAttr
 from devtools import debug
 from jsonpointer import resolve_pointer
 
@@ -20,8 +20,16 @@ def reflect_event(event_dict: dict) -> BaseModel:
 
 
 class _ReflectedModel(BaseModel):
+    __detail_type__: str = PrivateAttr()
+
+    @property
+    def detail_type(self) -> Optional[str]:
+        return self.__detail_type__ or None
+    
     class Config:
         alias_generator = lambda x: "fields_" if x == "fields" else x
+
+
 
 
 class SchemaReflector:
