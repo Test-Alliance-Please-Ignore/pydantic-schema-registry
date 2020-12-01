@@ -30,6 +30,9 @@ class _ReflectedModel(BaseModel):
         alias_generator = lambda x: "fields_" if x == "fields" else x
 
 
+BaseEvent = _ReflectedModel
+
+
 class SchemaReflector:
     def __init__(self, schema, registry=None):
         self.schema = schema
