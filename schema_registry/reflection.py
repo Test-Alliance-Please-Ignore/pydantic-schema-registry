@@ -1,4 +1,6 @@
 from typing import Optional, List
+from datetime import datetime
+
 from pydantic import BaseModel, create_model, Field, PrivateAttr
 from devtools import debug
 from jsonpointer import resolve_pointer
@@ -66,6 +68,9 @@ class SchemaReflector:
             type_ = property_info.get("type")
 
             if type_ == "string":
+                if "format" in property_info and property_info["format"] == "date-time":
+                    return (datetime, ... if required else None)
+
                 return (str, ... if required else None)
 
             elif type_ == "boolean":
