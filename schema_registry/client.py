@@ -127,7 +127,6 @@ class SchemaRegistry:
             try:
                 response = self.schema_client.update_schema(**opts)
             except self.schema_client.exceptions.ConflictException:
-                logger.info("Schema did not change so we don't have to worry")
                 schema_info = self._schemas[schema_name].get()
                 self._model_schemas[model] = schema_info
                 return schema_info
@@ -174,7 +173,7 @@ class SchemaRegistry:
 
         entry = dict(
             Source=sender,
-            Detail=json.dumps(model.dict()),
+            Detail=model.json(),
             Resources=resources,
             DetailType=detail_type_formatted,
             EventBusName=event_bus,

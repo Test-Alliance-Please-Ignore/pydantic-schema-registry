@@ -26,6 +26,15 @@ def named_registry():
 
 
 @pytest.fixture(scope="module")
+def empty_model():
+    item = {
+        "title": "RoleAddedEvent",
+        "type": "object",
+        "properties": {}
+    }
+    yield item
+
+@pytest.fixture(scope="module")
 def simple_model():
     item = {
         "title": "TestingModel",
@@ -107,6 +116,15 @@ def complex_referenced_model():
 
 
 @pytest.fixture(scope="module")
+def reflected_empty_model(empty_model, named_registry):
+    from schema_registry.reflection import SchemaReflector
+
+    model = SchemaReflector(empty_model).create_model_for_jsonschema()
+    named_registry.register_model("com.pleaseignore.tvm.test.reflection", model)
+    yield model
+
+
+@pytest.fixture(scope="module")
 def reflected_simple_model(simple_model, named_registry):
     from schema_registry.reflection import SchemaReflector
 
@@ -131,6 +149,10 @@ def reflected_complex_referenced_model(complex_referenced_model, named_registry)
     model = SchemaReflector(complex_referenced_model).create_model_for_jsonschema()
     named_registry.register_model("com.pleaseignore.tvm.test.reflection", model)
     yield model
+
+
+def test_empty_reflection(reflected_empty_model):
+    pass
 
 
 def test_simple_reflection(reflected_simple_model):
