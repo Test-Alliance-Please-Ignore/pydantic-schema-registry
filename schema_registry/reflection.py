@@ -25,11 +25,9 @@ class _ReflectedModel(BaseModel):
     @property
     def detail_type(self) -> Optional[str]:
         return self.__detail_type__ or None
-    
+
     class Config:
         alias_generator = lambda x: "fields_" if x == "fields" else x
-
-
 
 
 class SchemaReflector:

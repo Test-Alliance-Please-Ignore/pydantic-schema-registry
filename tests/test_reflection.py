@@ -148,6 +148,7 @@ def test_complex_referenced_model_reflection(reflected_complex_referenced_model)
 def test_simple_reflection_registration(reflected_simple_model, named_registry):
     named_registry.schema_for_model(reflected_simple_model)
 
+
 def test_event_reflection():
     event_json = '{"version": "0", "id": "d944d595-b186-4b86-43fe-b096d7e13bb3", "detail-type": "TAPI-TEST/schema_registry.test.TestingModel:1", "source": "com.pleaseignore.tvm.test", "account": "740218546536", "time": "2020-11-27T16:53:00Z", "region": "eu-west-1", "resources": ["pydantic-schema-registry"], "detail": {"name": "ozzeh", "description": "big willy johnston"}}'
     event = Event.parse_raw(event_json)

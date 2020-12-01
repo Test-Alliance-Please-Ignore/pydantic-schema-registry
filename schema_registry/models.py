@@ -66,7 +66,7 @@ class Event(BaseModel):
     detail_type: str = Field(..., alias="detail-type")
     detail: dict
     source: str
-    
+
     account: str
     region: str
 

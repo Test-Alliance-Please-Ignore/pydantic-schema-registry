@@ -3,7 +3,6 @@ import sys
 import logging
 import json
 
-
 from typing import List, Optional, Dict, Type
 from datetime import datetime
 
@@ -70,7 +69,6 @@ class Schema:
         else:
             return self._versions[version]
 
-
     def __repr__(self):
         return f"Schema<{self.schema_name}, versions: {len(self._versions)}, default version: {self.default_version}>"
 
@@ -106,7 +104,6 @@ class SchemaRegistry:
 
     def get_schema(self, name) -> Schema:
         return self._schemas[name]
-
 
     def register_model(
         self, namespace, model: Type[BaseModel]
@@ -144,9 +141,8 @@ class SchemaRegistry:
             raise ModelNotRegisteredError(model)
 
         return self._model_schemas[model].dict(
-            include=set(["schema_arn", "schema_name", "schema_version"])
+            include={"schema_arn", "schema_name", "schema_version"}
         )
-        
 
     def send_event(
         self, event_bus, sender, model: BaseModel, extra_resources: List[str] = None
@@ -166,7 +162,7 @@ class SchemaRegistry:
 
         event_data = {
             "schema": schema_info.dict(
-                include=set(["schema_arn", "schema_name", "schema_version"])
+                include={"schema_arn", "schema_name", "schema_version"}
             ),
             "event": model.dict(),
         }
