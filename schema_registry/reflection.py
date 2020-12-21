@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Any
 from datetime import datetime
 
 from pydantic import BaseModel, create_model, Field, PrivateAttr
@@ -54,7 +54,10 @@ class SchemaReflector:
         )
 
     def _resolve_array(self, property_info, required) -> tuple:
-        items = property_info.get("items")
+        items = property_info.get("items", {})
+        if not items:
+            return (Any, ... if required else None)
+
         item_type, item_value = next(iter(items.items()))
 
         if item_type == "$ref":
