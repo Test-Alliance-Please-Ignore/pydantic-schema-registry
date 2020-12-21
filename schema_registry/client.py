@@ -105,6 +105,54 @@ class SchemaRegistry:
     def get_schema(self, name) -> Schema:
         return self._schemas[name]
 
+    def _create_schema_for_model(self, schema_name: str, model: Type[BaseModel]):
+        opts = dict(
+            Content=model.schema_json(),
+            RegistryName=self.registry_name,
+            SchemaName=schema_name,
+            Type="JSONSchemaDraft4",
+        )
+        response = self.schema_client.create_schema(**opts)
+        schema_info = _SchemaCreateUpdateModel.parse_obj(response)
+        return schema_info
+
+    def _update_schema_for_model(self, schema_name: str, model: Type[BaseModel]):
+        opts = dict(
+            Content=model.schema_json(),
+            RegistryName=self.registry_name,
+            SchemaName=schema_name,
+            Type="JSONSchemaDraft4",
+        )
+        try:
+            response = self.schema_client.update_schema(**opts)
+            schema_info = _SchemaCreateUpdateModel.parse_obj(response)
+            return schema_info
+        except self.schema_client.exceptions.ConflictException:
+            return None
+        
+
+    def _schema_exists(self, schema_name: str) -> bool:
+        schema_name = "{}.{}".format(namespace, model.__name__)
+
+        try:
+            response = self.schema_client.describe_schema(RegistryName=self.registry_name, SchemaName=schema_name)
+            return True
+        except self.schema_client.exceptions.NotFoundException:
+            return False
+        except:
+            raise
+
+    def register_reflected_model(self, namespace, model: Type[BaseModel]) -> _SchemaCreateUpdateModel:
+        schema_name = "{}.{}".format(namespace, model.__name__)
+        exists = self._schema_exists(schema_name)
+        if not exists:
+            schema = self._create_schema_for_model(schema_name, model)
+        else:
+            schema = self._update_schema_for_model(schema_name, model)
+            
+        self._model_schemas[model] = schema
+        return schema
+
     def register_model(
         self, namespace, model: Type[BaseModel]
     ) -> _SchemaCreateUpdateModel:
@@ -134,6 +182,7 @@ class SchemaRegistry:
                 schema_info = _SchemaCreateUpdateModel.parse_obj(response)
                 self._model_schemas[model] = schema_info
                 return schema_info
+
 
     def schema_for_model(self, model: Type[BaseModel]) -> dict:
         if model not in self._model_schemas:
