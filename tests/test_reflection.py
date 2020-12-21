@@ -19,22 +19,19 @@ log.setLevel(logging.WARNING)
 log.propagate = True
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def named_registry():
     _registry = SchemaRegistry(registry_name="TAPI-TEST")
     yield _registry
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def empty_model():
-    item = {
-        "title": "RoleAddedEvent",
-        "type": "object",
-        "properties": {}
-    }
+    item = {"title": "RoleAddedEvent", "type": "object", "properties": {}}
     yield item
 
-@pytest.fixture(scope="module")
+
+@pytest.fixture(scope="session")
 def simple_model():
     item = {
         "title": "TestingModel",
@@ -48,7 +45,7 @@ def simple_model():
     return item
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def complex_model():
     item = {
         "title": "ComplexModel",
@@ -79,7 +76,38 @@ def complex_model():
     yield item
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
+def complex_model_blank_array():
+    item = {
+        "title": "ComplexModel",
+        "description": "Hi mom",
+        "type": "object",
+        "properties": {
+            "name": {"title": "Name", "type": "string"},
+            "description": {"title": "Description", "type": "string"},
+            "groups": {
+                "title": "Groups",
+                "type": "array",
+                "items": {},
+            },
+        },
+        "required": ["name", "groups"],
+        "definitions": {
+            "Group": {
+                "title": "Group",
+                "type": "object",
+                "properties": {
+                    "id": {"title": "Id", "type": "integer"},
+                    "name": {"title": "Name", "type": "string"},
+                },
+                "required": ["id", "name"],
+            }
+        },
+    }
+    yield item
+
+
+@pytest.fixture(scope="session")
 def complex_referenced_model():
     item = {
         "title": "ComplexReferencedModel",
@@ -115,7 +143,7 @@ def complex_referenced_model():
     yield item
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def reflected_empty_model(empty_model, named_registry):
     from schema_registry.reflection import SchemaReflector
 
@@ -124,7 +152,7 @@ def reflected_empty_model(empty_model, named_registry):
     yield model
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def reflected_simple_model(simple_model, named_registry):
     from schema_registry.reflection import SchemaReflector
 
@@ -133,7 +161,7 @@ def reflected_simple_model(simple_model, named_registry):
     yield model
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def reflected_complex_model(complex_model, named_registry):
     from schema_registry.reflection import SchemaReflector
 
@@ -142,7 +170,16 @@ def reflected_complex_model(complex_model, named_registry):
     yield model
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
+def reflected_complex_model_blank_array(complex_model_blank_array, named_registry):
+    from schema_registry.reflection import SchemaReflector
+
+    model = SchemaReflector(complex_model_blank_array).create_model_for_jsonschema()
+    named_registry.register_model("com.pleaseignore.tvm.test.reflection", model)
+    yield model
+
+
+@pytest.fixture(scope="session")
 def reflected_complex_referenced_model(complex_referenced_model, named_registry):
     from schema_registry.reflection import SchemaReflector
 
@@ -175,6 +212,42 @@ def test_event_reflection():
     event_json = '{"version": "0", "id": "d944d595-b186-4b86-43fe-b096d7e13bb3", "detail-type": "TAPI-TEST/schema_registry.test.TestingModel:1", "source": "com.pleaseignore.tvm.test", "account": "740218546536", "time": "2020-11-27T16:53:00Z", "region": "eu-west-1", "resources": ["pydantic-schema-registry"], "detail": {"name": "ozzeh", "description": "big willy johnston"}}'
     event = Event.parse_raw(event_json)
     model = reflect_event(json.loads(event_json))
-    debug(model)
-    debug(model.__fields__)
-    debug(model.__detail_type__)
+
+
+
+def test_notification_reflection():
+    event_data = {
+        "version": "0",
+        "id": "044c0eb6-c449-c274-b0a6-45474db730f8",
+        "detail-type": "TAPI/auth.notifications.StructureFuelAlert:1",
+        "source": "com.pleaseignore.auth",
+        "account": "740218546536",
+        "time": "2020-12-21T20:34:26Z",
+        "region": "eu-west-1",
+        "resources": [
+            "pydantic-schema-registry",
+        ],
+        "detail": {
+            "is_read": None,
+            "notification_id": 1352212309,
+            "sender_id": 1000137,
+            "sender_type": "corporation",
+            "timestamp": "2020-12-21T19:52:00+00:00",
+            "type": "StructureFuelAlert",
+            "listOfTypesAndQty": [
+                [
+                    308,
+                    4247,
+                ],
+            ],
+            "solarsystemID": 30003146,
+            "structureID": 1025844785540,
+            "structureShowInfoData": [
+                "showinfo",
+                35835,
+                1025844785540,
+            ],
+            "structureTypeID": 35835,
+        },
+    }
+    model = reflect_event(event_data)

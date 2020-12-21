@@ -2,3 +2,5 @@ schema_registry.egg-info/
 .python-version
 .idea/
 .vscode/
+.env
+.env.sh

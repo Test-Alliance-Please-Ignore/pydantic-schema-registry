@@ -10,6 +10,8 @@ import boto3
 
 from pydantic import BaseModel
 
+from devtools import debug
+
 from schema_registry.models import (
     Event,
     _SchemaPageModel,
@@ -87,9 +89,8 @@ class SchemaRegistry:
         self.prefix = prefix
         self._schemas: Dict[str, Schema] = {}
         self._model_schemas: Dict[Type[BaseModel], _SchemaCreateUpdateModel] = {}
-        self._load_schemas()
 
-    def _load_schemas(self):
+    def load_schemas(self):
         paginator = self.schema_client.get_paginator("list_schemas")
         page_options = dict(RegistryName=self.registry_name)
         if self.prefix:
@@ -103,7 +104,15 @@ class SchemaRegistry:
                 )
 
     def get_schema(self, name) -> Schema:
-        return self._schemas[name]
+        schema = Schema(self.schema_client, self.registry_name, name)
+        return schema
+
+    def _get_schema_content_for_model(self, schema_name, model: Type[BaseModel]) -> _SchemaCreateUpdateModel:
+        opts = dict(RegistryName=self.registry_name, SchemaName=schema_name)
+        response = self.schema_client.describe_schema(**opts)
+        schema_info = _SchemaCreateUpdateModel.parse_obj(response)
+        self._model_schemas[model] = schema_info
+        return schema_info 
 
     def _create_schema_for_model(self, schema_name: str, model: Type[BaseModel]):
         opts = dict(
@@ -114,6 +123,7 @@ class SchemaRegistry:
         )
         response = self.schema_client.create_schema(**opts)
         schema_info = _SchemaCreateUpdateModel.parse_obj(response)
+        self._model_schemas[model] = schema_info
         return schema_info
 
     def _update_schema_for_model(self, schema_name: str, model: Type[BaseModel]):
@@ -126,31 +136,32 @@ class SchemaRegistry:
         try:
             response = self.schema_client.update_schema(**opts)
             schema_info = _SchemaCreateUpdateModel.parse_obj(response)
+            self._model_schemas[model] = schema_info
             return schema_info
-        except self.schema_client.exceptions.ConflictException:
-            return None
-        
+        except self.schema_client.exceptions.ConflictException as e:
+            return self._get_schema_content_for_model(schema_name, model)
 
     def _schema_exists(self, schema_name: str) -> bool:
-        schema_name = "{}.{}".format(namespace, model.__name__)
-
         try:
-            response = self.schema_client.describe_schema(RegistryName=self.registry_name, SchemaName=schema_name)
+            response = self.schema_client.describe_schema(
+                RegistryName=self.registry_name, SchemaName=schema_name
+            )
             return True
         except self.schema_client.exceptions.NotFoundException:
             return False
         except:
             raise
 
-    def register_reflected_model(self, namespace, model: Type[BaseModel]) -> _SchemaCreateUpdateModel:
+    def register_reflected_model(
+        self, namespace, model: Type[BaseModel]
+    ) -> _SchemaCreateUpdateModel:
         schema_name = "{}.{}".format(namespace, model.__name__)
         exists = self._schema_exists(schema_name)
         if not exists:
             schema = self._create_schema_for_model(schema_name, model)
         else:
             schema = self._update_schema_for_model(schema_name, model)
-            
-        self._model_schemas[model] = schema
+
         return schema
 
     def register_model(
@@ -158,31 +169,10 @@ class SchemaRegistry:
     ) -> _SchemaCreateUpdateModel:
         schema_name = "{}.{}".format(namespace, model.__name__)
 
-        opts = dict(
-            Content=model.schema_json(),
-            RegistryName=self.registry_name,
-            SchemaName=schema_name,
-            Type="JSONSchemaDraft4",
-        )
+        schema_info = self.register_reflected_model(namespace, model)
+        self._model_schemas[model] = schema_info
 
-        if schema_name not in self._schemas:
-            response = self.schema_client.create_schema(**opts)
-            schema_info = _SchemaCreateUpdateModel.parse_obj(response)
-            self._model_schemas[model] = schema_info
-
-            return schema_info
-        else:
-            try:
-                response = self.schema_client.update_schema(**opts)
-            except self.schema_client.exceptions.ConflictException:
-                schema_info = self._schemas[schema_name].get()
-                self._model_schemas[model] = schema_info
-                return schema_info
-            else:
-                schema_info = _SchemaCreateUpdateModel.parse_obj(response)
-                self._model_schemas[model] = schema_info
-                return schema_info
-
+        return schema_info
 
     def schema_for_model(self, model: Type[BaseModel]) -> dict:
         if model not in self._model_schemas:
@@ -212,7 +202,7 @@ class SchemaRegistry:
             "schema": schema_info.dict(
                 include={"schema_arn", "schema_name", "schema_version"}
             ),
-            "event": model.dict(),
+            "event": model.dict(by_alias=True),
         }
 
         detail_type_formatted = "{}:{}".format(
@@ -222,7 +212,7 @@ class SchemaRegistry:
 
         entry = dict(
             Source=sender,
-            Detail=model.json(),
+            Detail=model.json(by_alias=True),
             Resources=resources,
             DetailType=detail_type_formatted,
             EventBusName=event_bus,

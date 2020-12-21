@@ -13,14 +13,21 @@ class _AWSResponseModel(BaseModel):
         alias_generator = camel_generator
 
 
-class _SchemaCreateUpdateModel(_AWSResponseModel):
-    description: Optional[str]
-    last_modified: datetime
+class _SchemaModel(_AWSResponseModel):
+    last_modified: Optional[datetime]
     schema_arn: str
     schema_name: str
+    tags: Optional[Dict[str, str]]
+    version_count: int = 1
+
+
+class _SchemaVersionModel(_SchemaModel):
     schema_version: str
-    tags: Dict[str, str]
     type_: Literal["OpenApi3", "JSONSchemaDraft4"] = Field(..., alias="Type")
+
+
+class _SchemaCreateUpdateModel(_SchemaVersionModel):
+    description: Optional[str]
     version_created_date: datetime
 
 
@@ -34,21 +41,6 @@ class _SchemaContentModel(_SchemaCreateUpdateModel):
             self._content = json.loads(self.content)
 
         return self._content
-
-
-class _SchemaVersionModel(_AWSResponseModel):
-    schema_arn: str
-    schema_name: str
-    schema_version: str
-    type_: Literal["OpenApi3", "JSONSchemaDraft4"] = Field(..., alias="Type")
-
-
-class _SchemaModel(_AWSResponseModel):
-    last_modified: datetime
-    schema_arn: str
-    schema_name: str
-    tags: Dict[str, str]
-    version_count: int
 
 
 class _SchemaVersionsPageModel(_AWSResponseModel):
